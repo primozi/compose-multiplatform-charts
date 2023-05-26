@@ -71,35 +71,33 @@ internal fun DrawScope.drawLineChart(
                         shouldSetZeroAsMinValue = shouldSetZeroAsMinValue,
                         shouldSetZeroAsMaxValue = shouldSetZeroAsMaxValue,
                     )
-                val connectionPoints = calculateConnectionPointsForBezierCurve(mappedPoints)
+//                val connectionPoints = calculateConnectionPointsForBezierCurve(mappedPoints)
 
                 path.reset() // reuse path
                 mappedPoints
                     .filter { it.y != null }
-                    .forEachIndexed { index, value ->
-                        if (index == 0) {
-                            path.moveTo(value.x, value.y!!)
-                        } else {
-                            val point = connectionPoints[index - 1]
-                            path.cubicTo(
-                                x1 = point.first.x,
-                                y1 = point.first.y!!,
-                                x2 = point.second.x,
-                                y2 = point.second.y!!,
-                                x3 = value.x,
-                                y3 = value.y!!,
-                            )
-                        }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let {
+                        val (cubicPoints1, cubicPoints2) = getCubicPoints(it)
+                        setPathData(
+                            path = path,
+                            pointsData = it,
+                            cubicPoints1 = cubicPoints1,
+                            cubicPoints2 = cubicPoints2
+                        )
                     }
+
 
                 if (mappedPoints.size == 1 || drawDots) {
                     val pointSize = data.lineWidth.toPx().times(if (drawDots) 3f else 2f)
-                    val widthThePointsTake = mappedPoints.maxOf { it.x } - mappedPoints.minOf { it.x }
+                    val widthThePointsTake =
+                        mappedPoints.maxOf { it.x } - mappedPoints.minOf { it.x }
                     val isEnoughSpace =
                         (mappedPoints.size - 2 /* this 2 is a magic number, it just works better with it */) * pointSize * 1.5 < widthThePointsTake
                     if (isEnoughSpace) {
                         drawPoints(
-                            points = mappedPoints.filter { it.y != null }.map { Offset(it.x, it.y!!) },
+                            points = mappedPoints.filter { it.y != null }
+                                .map { Offset(it.x, it.y!!) },
                             pointMode = PointMode.Points,
                             color = data.lineColor,
                             alpha = alpha[seriesIndex],
@@ -167,6 +165,46 @@ internal fun DrawScope.drawLineChart(
             }
     }
 }
+
+private fun getCubicPoints(pointsData: List<PointF>): Pair<List<PointF>, List<PointF>> {
+    val cubicPoints1 = mutableListOf<PointF>()
+    val cubicPoints2 = mutableListOf<PointF>()
+
+    for (i in 1 until pointsData.size) {
+        cubicPoints1.add(
+            PointF(
+                (pointsData[i].x + pointsData[i - 1].x) / 2, pointsData[i - 1].y
+            )
+        )
+        cubicPoints2.add(
+            PointF(
+                (pointsData[i].x + pointsData[i - 1].x) / 2, pointsData[i].y
+            )
+        )
+    }
+    return cubicPoints1 to cubicPoints2
+}
+
+fun setPathData(
+    path: Path,
+    pointsData: List<PointF>,
+    cubicPoints1: List<PointF>,
+    cubicPoints2: List<PointF>,
+) {
+    path.moveTo(pointsData.first().x, pointsData.first().y!!)
+    for (i in 1 until pointsData.size) {
+
+        path.cubicTo(
+            cubicPoints1[i - 1].x,
+            cubicPoints1[i - 1].y!!,
+            cubicPoints2[i - 1].x,
+            cubicPoints2[i - 1].y!!,
+            pointsData[i].x,
+            pointsData[i].y!!
+        )
+    }
+}
+
 
 private fun mapDataToPixels(
     currentSeries: LineChartSeries,

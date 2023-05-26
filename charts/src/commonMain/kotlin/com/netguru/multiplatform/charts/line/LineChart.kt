@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -28,8 +27,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.netguru.multiplatform.charts.ChartDisplayAnimation
 import com.netguru.multiplatform.charts.getAnimationAlphas
-import com.netguru.multiplatform.charts.grid.DrawXAxisMarkers
 import com.netguru.multiplatform.charts.grid.ChartGridDefaults
+import com.netguru.multiplatform.charts.grid.DrawXAxisMarkers
 import com.netguru.multiplatform.charts.grid.LineParameters
 import com.netguru.multiplatform.charts.grid.YAxisLabels
 import com.netguru.multiplatform.charts.grid.YAxisTitleData
@@ -70,6 +69,7 @@ fun LineChart(
     displayAnimation: ChartDisplayAnimation = ChartDisplayAnimation.Simple(),
     shouldDrawValueDots: Boolean = false,
     shouldInterpolateOverNullValues: Boolean = true,
+    shouldShowYAxisLabelsOnBothSides: Boolean = false,
 ) {
     var touchPositionX by remember { mutableStateOf(-1f) }
     var verticalGridLines by remember { mutableStateOf(emptyList<LineParameters>()) }
@@ -108,7 +108,10 @@ fun LineChart(
             }
 
             // main chart
-            Column(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
                 var pointsToDraw: List<SeriesAndClosestPoint> by remember {
                     mutableStateOf(emptyList())
                 }
@@ -116,11 +119,12 @@ fun LineChart(
                     min = data.minX,
                     max = data.maxX,
                     maxTicksCount = (
-                        minOf(
-                            xAxisConfig?.maxVerticalLines ?: ChartGridDefaults.NUMBER_OF_GRID_LINES,
-                            numberOfXAxisEntries
-                        ) - 1
-                        )
+                            minOf(
+                                xAxisConfig?.maxVerticalLines
+                                    ?: ChartGridDefaults.NUMBER_OF_GRID_LINES,
+                                numberOfXAxisEntries
+                            ) - 1
+                            )
                         .coerceAtLeast(1),
                     roundClosestTo = xAxisConfig?.roundMarkersToMultiplicationOf
                         ?: ChartGridDefaults.ROUND_X_AXIS_MARKERS_CLOSEST_TO,
@@ -159,7 +163,8 @@ fun LineChart(
                                     .pointerInput(Unit) {
                                         while (true) {
                                             awaitPointerEventScope {
-                                                val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                                                val event =
+                                                    awaitPointerEvent(pass = PointerEventPass.Initial)
 
                                                 touchPositionX = if (
                                                     shouldIgnoreTouchInput(
@@ -229,6 +234,16 @@ fun LineChart(
                         )
                     }
                 }
+            }
+
+            if (shouldShowYAxisLabelsOnBothSides && yAxisConfig.markerLayout != null) {
+                YAxisLabels(
+                    horizontalGridLines = horizontalGridLines,
+                    yAxisMarkerLayout = yAxisConfig.markerLayout,
+                    yAxisTitleData = yAxisConfig.yAxisTitleData,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                )
             }
         }
 

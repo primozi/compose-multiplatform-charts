@@ -64,6 +64,7 @@ internal fun LineChartTooltip(
             overlayHeaderLayout = tooltipConfig.headerLabel,
             overlayDataEntryLayout = tooltipConfig.dataEntryLabel,
             drawPoints = drawPoints,
+            shouldDrawEnlargedPoints = tooltipConfig.showEnlargedPointOnLine,
             highlightPointsCloserThan = tooltipConfig.highlightPointsCloserThan,
             touchOffsetHorizontal = tooltipConfig.touchOffsetHorizontal,
             touchOffsetVertical = tooltipConfig.touchOffsetVertical,
@@ -84,6 +85,7 @@ private fun LineChartTooltip(
     overlayHeaderLayout: @Composable (value: Any, dataUnit: String?) -> Unit,
     overlayDataEntryLayout: @Composable (dataName: String, dataNameShort: String?, dataUnit: String?, value: Any) -> Unit,
     drawPoints: (points: List<SeriesAndClosestPoint>) -> Unit,
+    shouldDrawEnlargedPoints: Boolean,
     highlightPointsCloserThan: Dp,
     touchOffsetHorizontal: Dp,
     touchOffsetVertical: Dp,
@@ -142,7 +144,9 @@ private fun LineChartTooltip(
         }
             .unzip()
 
-        drawPoints(valuesToShowDataFor)
+        if(shouldDrawEnlargedPoints) {
+            drawPoints(valuesToShowDataFor)
+        }
 
         OverlayInformation(
             positionX = linePositionX,
